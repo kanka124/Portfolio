@@ -1,0 +1,300 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt"%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="">
+<meta name="author"
+	content="Mark Otto, Jacob Thornton, and Bootstrap contributors">
+<meta name="generator" content="Jekyll v4.1.1">
+<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+<link rel="canonical"
+	href="https://getbootstrap.com/docs/4.5/examples/album/">
+
+<!-- Bootstrap core CSS -->
+<link href="./assets/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<style>
+.bd-placeholder-img {
+	font-size: 1.125rem;
+	text-anchor: middle;
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+}
+
+@media ( min-width : 768px) {
+	.bd-placeholder-img-lg {
+		font-size: 3.5rem;
+	}
+}
+</style>
+<!-- Custom styles for this template -->
+<link href="./css/album.css" rel="stylesheet">
+<title>${ section }-${ content.board_subject }</title>
+<script src="http://code.jquery.com/jquery-latest.js"></script>
+<script>
+	$(function(){
+		// 추천버튼 클릭시(추천 추가 또는 추천 제거)
+		$("#rec_update").click(function(){
+			$.ajax({
+				url: "/blog1/RecUpdate.do",
+                type: "POST",
+                data: {
+                    no: '${content.board_no}',
+                    id: '${id}'
+                },
+                success: function () {
+			        recCount();
+                },
+			})
+		})
+		
+			$("#boardDelete").click(function(){
+			var result = confirm("게시글을 삭제하시겠습니까?");
+			if(result){
+				location.href = '/blog1/BoardDelete.do?section=${param.section}&num=${param.num}&no=${content.board_no}';
+			}
+		});
+		
+		// 게시글 추천수
+	    function recCount() {
+			$.ajax({
+				url: "/blog1/RecCount.do",
+                type: "POST",
+                data: {
+                    no: '${content.board_no}'
+                },
+                success: function (count) {
+                	$(".rec_count").html(count);
+                },
+			})
+	    };
+	    recCount(); // 처음 시작했을 때 실행되도록 해당 함수 호출
+	    
+		 // 로그인 클릭
+	    $(".newLogin").click(function(){
+			var ww=400;    //띄울 창의 넓이
+			var wh=250;    //띄울 창의 높이
+			
+			// 중앙 좌표
+			var top=(screen.availHeight-wh)/2;
+			var left=(screen.availWidth-ww)/2;
+			// 새창 띄움
+			window.open("/blog1/NewLoginForm.do", "window", "width="+ww+", height="+wh+", top="+top+", left="+left+", toolbar=no, menubar=no, scrollbars=no, resizable=no");
+	    });
+	    
+	    // 댓글 입력
+	    $("#reply_btn").click(function(){
+	    	if($("#reply_content").val().trim() === ""){
+	    		alert("댓글을 입력하세요.");
+	    		$("#reply_content").val("").focus();
+	    	}else{
+	    		$.ajax({
+	    			url: "/blog1/ReplyWriteAction.do",
+	                type: "POST",
+	                data: {
+	                    no : $("#no").val(),
+	                    id : $("#id").val(),
+	                    reply_content : $("#reply_content").val()
+	                },
+	                success: function () {
+	                	alert("댓글 등록 완료");
+	                	$("#reply_content").val("");
+	                	getReply();
+	                }
+	    		})
+	    	}
+	    })
+	    
+	    // 댓글 리스트
+	    function getReply(){
+	    	$.ajax({
+    			url: "/blog1/GetReply.do", // 요청 url
+                type: "POST", // post 방식
+                data: {
+                	board_no : ${ content.board_no } // board_no의 값을 넘겨줌
+                },
+                success: function (json) { // 성공하였을 경우
+                	json = json.replace(/\n/gi,"\\r\\n"); // 개행문자 대체
+                	$("#replyList").text(""); // 댓글리스트 영역 초기화
+                	var obj = JSON.parse(json); // service 클래스로 부터 전달된 문자열 파싱
+                	var replyList = obj.replyList; // replyList는 전달된 json의 키값을 의미
+                	var output = ""; // 댓글 목록을 누적하여 보여주기 위한 변수
+                	for (var i = 0; i < replyList.length; i++) { // 반복문을 통해 output에 누적
+   	                    output += "<div class='w3-border w3-padding'>";
+    	                for (var j = 0; j < replyList[i].length; j++) {
+    	                    var reply = replyList[i][j];
+    	                    if(j === 0){
+    	     					output += "<i class='fa fa-user'></i>&nbsp;&nbsp;" + reply.id + "&nbsp;&nbsp;";
+    	                    }else if(j === 1){
+    	     					output += "&nbsp;&nbsp;<i class='fa fa-calendar'></i>&nbsp;&nbsp;" + reply.reply_date;
+    	                    }else if(j === 2){
+    	     					output += "<pre>" + reply.reply_content + "</pre></div>";
+    	                    }
+    	                };
+    	        	};
+   	              	$("#replyList").html(output); // replyList 영역에 output 출력
+   	              	$(".reply_count").html(i);
+                }
+	    	})
+	    }
+	    getReply(); // 해당 페이지 실행 시 해당 함수 호출
+	})
+</script>
+</head>
+<body>
+	<%
+	//로긴 한사람이면 userID라는 변수에 해당 아이디가 담기고 그렇지 않으면 null값
+	
+		String userID = null;
+		if (session.getAttribute("userID") != null) {
+			userID = (String) session.getAttribute("userID");
+		}
+	%>
+
+	<header>
+		<div class="collapse bg-dark" id="navbarHeader">
+			<div class="container">
+				<div class="row">
+					<div class="col-sm-8 col-md-7 py-4">
+						<h4 class="text-white">오묘한맛'Blog</h4>
+						<p class="text-muted">안녕하세요 오묘한맛's 블로그입니다. 제 블로그에 방문해주셔서
+							감사합니다. 게임,스포츠,포트폴리오를 정리한 저의 블로그입니다.</p>
+					</div>
+					<div class="col-sm-4 offset-md-1 py-4">
+						<h4 class="text-white">메뉴</h4>
+						<ul class="list-unstyled">
+							<li><a href="/blog1/BoardList.do?section=menu1" class="text-white">개인적인 생각</a></li>
+							<li><a href="/blog1/BoardList.do?section=menu2" class="text-white">게임 게시판</a></li>
+							<li><a href="/blog1/BoardList.do?section=menu3" class="text-white">스포츠 게시판</a></li>
+							<li><a href="/blog1/BoardList.do?section=menu4" class="text-white">맛집 후기 게시판</a></li>
+							<li><a href="/blog1/BoardList.do?section=menu5" class="text-white">포트 폴리오</a></li>
+							
+						</ul>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="navbar navbar-dark bg-dark shadow-sm">
+			<div class="container d-flex justify-content-between">
+				<a href="#" class="navbar-brand d-flex align-items-center"> 
+				<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+						fill="none" stroke="currentColor" stroke-linecap="round"
+						stroke-linejoin="round" stroke-width="2" aria-hidden="true"
+						class="mr-2" viewBox="0 0 24 24" focusable="false">
+						<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+						<circle cx="12" cy="13" r="4" /></svg> <strong>오묘한맛's Blog</strong>
+				</a>
+				<button class="navbar-toggler" type="button" data-toggle="collapse"
+					aria-controls="navbarHeader" aria-expanded="false"
+					aria-label="Toggle navigation"
+					onclick="location='/blog1/LoginForm.do'">로그인</button>
+				<button class="navbar-toggler" type="button" data-toggle="collapse"
+					aria-controls="navbarHeader" aria-expanded="false"
+					aria-label="Toggle navigation" onclick="location='/blog1/MemberUpdateForm.do'">회원정보</button>
+					<button class="navbar-toggler" type="button" data-toggle="collapse"
+					aria-controls="navbarHeader" aria-expanded="false"
+					aria-label="Toggle navigation" onclick="location='/blog1/LogOut.do'">로그아웃</button>
+				<button class="navbar-toggler" type="button" data-toggle="collapse"
+					data-target="#navbarHeader" aria-controls="navbarHeader"
+					aria-expanded="false" aria-label="Toggle navigation">
+					<span class="navbar-toggler-icon"></span>
+				</button>
+			</div>
+		</div>
+	</header>
+	<br>
+	<div class="w3-main w3-margin-bottom" style="margin-left: 340px; margin-right: 40px; width: 60%;">
+		<div class="w3-center w3-text-white w3-round">
+			<h3 style="text-transform: uppercase">${ section }</h3>
+		</div>
+		<div class="w3-bar">
+			<c:if test="${ sel == null && find == null }">
+				<button type="button" class="btn btn-primary" onclick="location.href='/blog1/BoardList.do?section=${ section }&num=${ num }'">
+					<i class="fa fa-bars"></i> 글 목록
+				</button>
+			</c:if>
+			<c:if test="${ sel != null && find != null }">
+				<button type="button" class="btn btn-primary" onclick="location.href='/blog1/BoardList.do?section=${ section }&num=${ num }&sel=${ sel }&find=${ find }'">
+					<i class="fa fa-bars"></i> 글 목록
+				</button>
+			</c:if>
+			<!-- 로그인 하였을때 -->
+			<c:if test="${ id != null }">
+				<button type="button" class="btn btn-primary" onClick="location.href='/blog1/BoardWriteForm.do?section=${ section }'">
+					<i class="fa fa-pencil-square-o"></i> 새 글 쓰기
+				</button>
+			</c:if>
+			<!--작성자 일때  -->
+			<c:if test="${ content.id == id }">
+				<button type="button" class="btn btn-primary" onClick="location.href='/blog1/BoardUpdateForm.do?section=${ section }&no=${ content.board_no }&num=${ num }'">
+					<i class="fa fa-exchange"></i> 글 수정
+				</button>
+				<button type="button" class="btn btn-primary" id="boardDelete">
+					<i class="fa fa-remove"></i> 글 삭제
+				</button>
+			</c:if>
+		</div>
+		<!-- 게시글 내용(작성자, 작성일, 조회수, 번호, 제목, 내용) -->
+		<div class="w3-article">
+			<div class="w3-border w3-padding">
+				<i class="fa fa-user"></i> <a href="#">${ content.id }</a><br /> 
+				<i class="fa fa-calendar"></i> <fmt:formatDate value="${ content.write_date }" pattern="yy-MM-dd" />
+				<div class="w3-right">
+					<span><i class="fa fa-eye"></i> ${ content.readcount }</span>
+				</div>
+			</div>
+			<div class="w3-border w3-padding">
+				#${ content.board_no } <span class="w3-center w3-xlarge w3-text-blue">${ content.board_subject }</span>
+			</div>
+			<article class="w3-border w3-large w3-padding">${ content.board_content }</article>
+		</div>
+		
+		<!-- 추천 기능 -->
+		<div>
+			<div class="w3-border w3-center w3-padding">
+				<c:if test="${ id == null }">
+					추천 기능은 <button type="button" id="newLogin"><b class="w3-text-blue">로그인</b></button> 후 사용 가능합니다.<br />
+					<i class="fa fa-heart" style="font-size:16px;color:red"></i>
+					&nbsp;<span class="rec_count"></span>					
+				</c:if>
+				<c:if test="${ id != null }">
+					<button class="w3-button w3-black w3-round" id="rec_update">
+						<i class="fa fa-heart" style="font-size:16px;color:red"></i>
+						&nbsp;<span class="rec_count"></span>
+					</button> 
+				</c:if>
+			</div>
+		</div>
+		<!-- 댓글 기능 -->
+		<!-- 댓글 기능 -->
+		<div>
+			<div class="w3-border w3-padding">댓글</div>
+			<div class="w3-border w3-padding">
+				<c:if test="${ id == null }">
+					<textarea rows="5" cols="50" class="w3-input w3-border newLogin" readonly>로그인 후 댓글 달기</textarea>
+				</c:if>
+				<c:if test="${ id != null }">
+					<i class="fa fa-user w3-padding-16"></i> ${ content.id }
+					<form>
+						<input type="hidden" name="no" id="no" value="${ content.board_no }"> 
+						<input type="hidden" name="id" id="id" value="${ id }">
+						<textarea rows="5" cols="50" class="w3-input w3-border" placeholder="댓글 작성" name="reply_content" id="reply_content"></textarea>
+						<input type="button" class="btn btn-primary" id="reply_btn" value="댓글 등록">
+					</form>
+				</c:if>
+			</div>
+			<div>
+				<div class="w3-border w3-padding">댓글목록(<i class="fa fa-commenting-o"></i> <span class="reply_count"></span>)</div>
+				<div id="replyList"></div>
+			</div>
+		</div>
+	</div>
+	
+</body>
+</html>
